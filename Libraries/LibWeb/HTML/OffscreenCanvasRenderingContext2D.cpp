@@ -119,16 +119,6 @@ void OffscreenCanvasRenderingContext2D::stroke(Path2D const&)
     dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::stroke(Path2D)");
 }
 
-void OffscreenCanvasRenderingContext2D::fill_text(Utf16String const&, float, float, Optional<double>)
-{
-    dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::fill_text()");
-}
-
-void OffscreenCanvasRenderingContext2D::stroke_text(Utf16String const&, float, float, Optional<double>)
-{
-    dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::stroke_text()");
-}
-
 void OffscreenCanvasRenderingContext2D::fill(StringView)
 {
     dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::fill(StringView)");

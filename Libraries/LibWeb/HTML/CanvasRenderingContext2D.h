@@ -44,7 +44,7 @@ class CanvasRenderingContext2D
     , public CanvasFilters
     , public CanvasRect
     , public CanvasDrawPath
-    , public CanvasText
+    , public CanvasText<CanvasRenderingContext2D>
     , public CanvasDrawImage
     , public CanvasImageData
     , public CanvasImageSmoothing
@@ -69,9 +69,6 @@ public:
     virtual void begin_path() override;
     virtual void stroke() override;
     virtual void stroke(Path2D const& path) override;
-
-    virtual void fill_text(Utf16String const&, float x, float y, Optional<double> max_width) override;
-    virtual void stroke_text(Utf16String const&, float x, float y, Optional<double> max_width) override;
 
     virtual void fill(StringView fill_rule) override;
     virtual void fill(Path2D& path, StringView fill_rule) override;
@@ -128,6 +125,11 @@ public:
     RefPtr<Gfx::PaintingSurface> surface() { return m_surface; }
     void allocate_painting_surface_if_needed();
 
+protected:
+    [[nodiscard]] Gfx::Path text_path(StringView text, float x, float y, Optional<double> max_width) override;
+    void stroke_internal(Gfx::Path const&) override;
+    void fill_internal(Gfx::Path const&, Gfx::WindingRule) override;
+
 private:
     CanvasRenderingContext2D(JS::Realm&, HTMLCanvasElement&, CanvasRenderingContext2DSettings);
 
@@ -150,12 +152,9 @@ private:
     PreparedText prepare_text(Utf16String const&, float max_width = INFINITY);
 
     [[nodiscard]] Gfx::Path rect_path(float x, float y, float width, float height);
-    [[nodiscard]] Gfx::Path text_path(Utf16String const&, float x, float y, Optional<double> max_width);
 
     Gfx::Color clear_color() const;
 
-    void stroke_internal(Gfx::Path const&);
-    void fill_internal(Gfx::Path const&, Gfx::WindingRule);
     void clip_internal(Gfx::Path&, Gfx::WindingRule);
     void paint_shadow_for_fill_internal(Gfx::Path const&, Gfx::WindingRule);
     void paint_shadow_for_stroke_internal(Gfx::Path const&);

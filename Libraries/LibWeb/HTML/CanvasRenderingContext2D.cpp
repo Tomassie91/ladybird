@@ -305,16 +305,6 @@ Gfx::Path CanvasRenderingContext2D::text_path(Utf16String const& text, float x, 
     return path.copy_transformed(transform);
 }
 
-void CanvasRenderingContext2D::fill_text(Utf16String const& text, float x, float y, Optional<double> max_width)
-{
-    fill_internal(text_path(text, x, y, max_width), Gfx::WindingRule::Nonzero);
-}
-
-void CanvasRenderingContext2D::stroke_text(Utf16String const& text, float x, float y, Optional<double> max_width)
-{
-    stroke_internal(text_path(text, x, y, max_width));
-}
-
 void CanvasRenderingContext2D::begin_path()
 {
     path().clear();

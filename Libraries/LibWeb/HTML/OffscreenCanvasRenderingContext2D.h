@@ -45,7 +45,7 @@ class OffscreenCanvasRenderingContext2D : public Bindings::PlatformObject
     , public CanvasFilters
     , public CanvasRect
     , public CanvasDrawPath
-    , public CanvasText
+    , public CanvasText<OffscreenCanvasRenderingContext2D>
     , public CanvasDrawImage
     , public CanvasImageData
     , public CanvasImageSmoothing
@@ -74,9 +74,6 @@ public:
     virtual void begin_path() override;
     virtual void stroke() override;
     virtual void stroke(Path2D const& path) override;
-
-    virtual void fill_text(Utf16String const&, float x, float y, Optional<double> max_width) override;
-    virtual void stroke_text(Utf16String const&, float x, float y, Optional<double> max_width) override;
 
     virtual void fill(StringView fill_rule) override;
     virtual void fill(Path2D& path, StringView fill_rule) override;
@@ -127,6 +124,11 @@ public:
     [[nodiscard]] Gfx::Painter* painter();
 
     void set_size(Gfx::IntSize const&);
+
+protected:
+    [[nodiscard]] Gfx::Path text_path(StringView text, float x, float y, Optional<double> max_width) override;
+    void stroke_internal(Gfx::Path const&) override;
+    void fill_internal(Gfx::Path const&, Gfx::WindingRule) override;
 
 private:
     explicit OffscreenCanvasRenderingContext2D(JS::Realm&, OffscreenCanvas&, CanvasRenderingContext2DSettings);

@@ -5,7 +5,6 @@ add_library(JavaScriptTestRunnerMain OBJECT JavaScriptTestRunnerMain.cpp)
 
 set(SOURCES
     TestSuite.cpp
-        ../LibWeb/HTML/Canvas/CanvasText.cpp
 )
 
 add_library(LibTest ${SOURCES})

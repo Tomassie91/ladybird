@@ -4,28 +4,26 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include "CanvasText.h"
-
 #include <AK/StringView.h>
-#include <LibGfx/Path.h>
+#include <LibGfx/AffineTransform.h>
 #include <LibGfx/TextLayout.h>
 #include <LibGfx/WindingRule.h>
+#include <LibWeb/HTML/Canvas/CanvasText.h>
 #include <LibWeb/Infra/CharacterTypes.h>
 
 namespace Web::HTML {
-// https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-measuretext
-GC::Ref<TextMetrics> CanvasText::measure_text(StringView text)
+template <typename IncludingClass>
+GC::Ref<TextMetrics> CanvasText<IncludingClass>::measure_text(Utf16String const& text)
 {
-    // The measureText(text) method steps are to run the text preparation
+     // The measureText(text) method steps are to run the text preparation
     // algorithm, passing it text and the object implementing the CanvasText
     // interface, and then using the returned inline box return a new
     // TextMetrics object with members behaving as described in the following
     // list:
-    auto& realm = my_realm();
-    auto prepared_text = prepare_text(text, {}, realm);
-    auto metrics = TextMetrics::create(realm);
+    auto prepared_text = prepare_text(text);
+    auto metrics = TextMetrics::create(realm());
     // FIXME: Use the font that was used to create the glyphs in prepared_text.
-    auto const& font = my_font_cascade_list->first();
+    auto const& font = font_cascade_list()->first();
 
     // width attribute: The width of that inline box, in CSS pixels. (The text's advance width.)
     metrics->set_width(prepared_text.bounding_box.width());
@@ -55,18 +53,23 @@ GC::Ref<TextMetrics> CanvasText::measure_text(StringView text)
     return metrics;
 }
 
-void CanvasRenderingContext2D::fill_text(Utf16String const& text, float x, float y, Optional<double> max_width)
+// https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-filltext
+template <typename IncludingClass>
+void CanvasText<IncludingClass>::fill_text(StringView text, float x, float y, Optional<double> max_width)
 {
     fill_internal(text_path(text, x, y, max_width), Gfx::WindingRule::Nonzero);
 }
 
-void CanvasRenderingContext2D::stroke_text(Utf16String const& text, float x, float y, Optional<double> max_width)
+// https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-stroketext
+template <typename IncludingClass>
+void CanvasText<IncludingClass>::stroke_text(StringView text, float x, float y, Optional<double> max_width)
 {
     stroke_internal(text_path(text, x, y, max_width));
 }
 
 // https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm
-CanvasText::PreparedText CanvasText::prepare_text(ByteString const& text, Optional<double> max_width)
+template <typename IncludingClass>
+typename CanvasText<IncludingClass>::PreparedText CanvasText<IncludingClass>::prepare_text(ByteString const& text, Optional<double> max_width)
 {
     // 1. If maxWidth was provided but is less than or equal to zero or equal to NaN, then return an empty array.
     if (max_width.has_value() && max_width.value() <= 0) {
@@ -81,7 +84,7 @@ CanvasText::PreparedText CanvasText::prepare_text(ByteString const& text, Option
     auto replaced_text = MUST(builder.to_string());
 
     // 3. Let font be the current font of target, as given by that object's font attribute.
-    auto glyph_runs = Gfx::shape_text({ 0, 0 }, Utf8View(replaced_text), *font_cascade_list());
+    auto glyph_runs = Gfx::shape_text({ 0, 0 }, Utf8View(replaced_text), *my_font_cascade_list());
 
     // FIXME: 4. Let language be the target's language.
     // FIXME: 5. If language is "inherit":
@@ -126,5 +129,61 @@ CanvasText::PreparedText CanvasText::prepare_text(ByteString const& text, Option
 
     // 12. Return result, physical alignment, and the inline box.
     return prepared_text;
+}
+
+template <typename IncludingClass>
+Gfx::Path CanvasText<IncludingClass>::text_path(Utf16String const& text, float x, float y, Optional<double> max_width)
+{
+    if (max_width.has_value() && max_width.value() <= 0)
+        return {};
+
+    auto& drawing_state = this->drawing_state();
+
+    auto const& font_cascade_list = this->font_cascade_list();
+    auto const& font = font_cascade_list->first();
+    auto glyph_runs = Gfx::shape_text({ x, y }, text.utf16_view(), *font_cascade_list);
+    Gfx::Path path;
+    for (auto const& glyph_run : glyph_runs) {
+        path.glyph_run(glyph_run);
+    }
+
+    auto text_width = path.bounding_box().width();
+    Gfx::AffineTransform transform = {};
+
+    // https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm:
+    // 9. If maxWidth was provided and the hypothetical width of the inline box in the hypothetical line box
+    // is greater than maxWidth CSS pixels, then change font to have a more condensed font (if one is
+    // available or if a reasonably readable one can be synthesized by applying a horizontal scale
+    // factor to the font) or a smaller font, and return to the previous step.
+    if (max_width.has_value() && text_width > float(*max_width)) {
+        auto horizontal_scale = float(*max_width) / text_width;
+        transform = Gfx::AffineTransform {}.scale({ horizontal_scale, 1 });
+        text_width *= horizontal_scale;
+    }
+
+    // Apply text align
+    // FIXME: CanvasTextAlign::Start and CanvasTextAlign::End currently do not nothing for right-to-left languages:
+    //        https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-textalign-start
+    // Default alignment of draw_text is left so do nothing by CanvasTextAlign::Start and CanvasTextAlign::Left
+    if (drawing_state.text_align == Bindings::CanvasTextAlign::Center) {
+        transform = Gfx::AffineTransform {}.set_translation({ -text_width / 2, 0 }).multiply(transform);
+    }
+    if (drawing_state.text_align == Bindings::CanvasTextAlign::End || drawing_state.text_align == Bindings::CanvasTextAlign::Right) {
+        transform = Gfx::AffineTransform {}.set_translation({ -text_width, 0 }).multiply(transform);
+    }
+
+    // Apply text baseline
+    // FIXME: Implement CanvasTextBaseline::Hanging, Bindings::CanvasTextAlign::Alphabetic and Bindings::CanvasTextAlign::Ideographic for real
+    //        right now they are just handled as textBaseline = top or bottom.
+    //        https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-textbaseline-hanging
+    // Default baseline of draw_text is top so do nothing by CanvasTextBaseline::Top and CanvasTextBaseline::Hanging
+    if (drawing_state.text_baseline == Bindings::CanvasTextBaseline::Middle) {
+        transform = Gfx::AffineTransform {}.set_translation({ 0, font.pixel_size() / 2 }).multiply(transform);
+    }
+    if (drawing_state.text_baseline == Bindings::CanvasTextBaseline::Top || drawing_state.text_baseline == Bindings::CanvasTextBaseline::Hanging) {
+        transform = Gfx::AffineTransform {}.set_translation({ 0, font.pixel_size() }).multiply(transform);
+    }
+
+    return path.copy_transformed(transform);
 }
 }

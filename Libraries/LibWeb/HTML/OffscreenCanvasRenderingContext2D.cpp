@@ -156,14 +156,6 @@ void OffscreenCanvasRenderingContext2D::reset_to_default_state()
     dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::reset_to_default_state()");
 }
 
-GC::Ref<TextMetrics> OffscreenCanvasRenderingContext2D::measure_text(Utf16String const&)
-{
-    dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::measure_text()");
-
-    auto metrics = TextMetrics::create(realm());
-    return metrics;
-}
-
 void OffscreenCanvasRenderingContext2D::clip(StringView)
 {
     dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::clip(StringView)");
@@ -320,6 +312,114 @@ void OffscreenCanvasRenderingContext2D::set_global_composite_operation(String)
 {
     dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::painter()");
     return nullptr;
+}
+
+static Gfx::Path::CapStyle to_gfx_cap(Bindings::CanvasLineCap const& cap_style)
+{
+    switch (cap_style) {
+    case Bindings::CanvasLineCap::Butt:
+        return Gfx::Path::CapStyle::Butt;
+    case Bindings::CanvasLineCap::Round:
+        return Gfx::Path::CapStyle::Round;
+    case Bindings::CanvasLineCap::Square:
+        return Gfx::Path::CapStyle::Square;
+    }
+    VERIFY_NOT_REACHED();
+}
+
+static Gfx::Path::JoinStyle to_gfx_join(Bindings::CanvasLineJoin const& join_style)
+{
+    switch (join_style) {
+    case Bindings::CanvasLineJoin::Round:
+        return Gfx::Path::JoinStyle::Round;
+    case Bindings::CanvasLineJoin::Bevel:
+        return Gfx::Path::JoinStyle::Bevel;
+    case Bindings::CanvasLineJoin::Miter:
+        return Gfx::Path::JoinStyle::Miter;
+    }
+
+    VERIFY_NOT_REACHED();
+}
+
+void OffscreenCanvasRenderingContext2D::paint_shadow_for_fill_internal(Gfx::Path const& path, Gfx::WindingRule winding_rule)
+{
+    auto* painter = this->painter();
+    if (!painter)
+        return;
+
+    auto path_to_fill = path;
+    path_to_fill.close_all_subpaths();
+
+    auto& state = this->drawing_state();
+
+    if (state.current_compositing_and_blending_operator == Gfx::CompositingAndBlendingOperator::Copy)
+        return;
+
+    painter->save();
+
+    Gfx::AffineTransform transform;
+    transform.translate(state.shadow_offset_x, state.shadow_offset_y);
+    painter->set_transform(transform);
+    painter->fill_path(path_to_fill, state.shadow_color.with_opacity(state.global_alpha), winding_rule, state.shadow_blur, state.current_compositing_and_blending_operator);
+
+    painter->restore();
+}
+
+void OffscreenCanvasRenderingContext2D::paint_shadow_for_stroke_internal(Gfx::Path const& path)
+{
+    auto* painter = this->painter();
+    if (!painter)
+        return;
+
+    auto& state = drawing_state();
+
+    if (state.current_compositing_and_blending_operator == Gfx::CompositingAndBlendingOperator::Copy)
+        return;
+
+    painter->save();
+
+    Gfx::AffineTransform transform;
+    transform.translate(state.shadow_offset_x, state.shadow_offset_y);
+    painter->set_transform(transform);
+    painter->stroke_path(path, state.shadow_color.with_opacity(state.global_alpha), state.line_width, state.shadow_blur, state.current_compositing_and_blending_operator);
+
+    painter->restore();
+}
+
+void OffscreenCanvasRenderingContext2D::fill_internal(Gfx::Path const& path, Gfx::WindingRule winding_rule)
+{
+    auto* painter = this->painter();
+    if (!painter)
+        return;
+
+    paint_shadow_for_fill_internal(path, winding_rule);
+
+    auto path_to_fill = path;
+    path_to_fill.close_all_subpaths();
+    auto& state = this->drawing_state();
+    painter->fill_path(path_to_fill, state.fill_style.to_gfx_paint_style(), state.filter, state.global_alpha, state.current_compositing_and_blending_operator, winding_rule);
+}
+
+void OffscreenCanvasRenderingContext2D::stroke_internal(Gfx::Path const& path)
+{
+    auto* painter = this->painter();
+    if (!painter)
+        return;
+
+    paint_shadow_for_stroke_internal(path);
+
+    auto& state = drawing_state();
+
+    auto line_cap = to_gfx_cap(state.line_cap);
+    auto line_join = to_gfx_join(state.line_join);
+    // FIXME: Need a Vector<float> for rendering dash_array, but state.dash_list is Vector<double>.
+    // Maybe possible to avoid creating copies?
+    auto dash_array = Vector<float> {};
+    dash_array.ensure_capacity(state.dash_list.size());
+    for (auto const& dash : state.dash_list) {
+        dash_array.append(static_cast<float>(dash));
+    }
+    painter->stroke_path(path, state.stroke_style.to_gfx_paint_style(), state.filter, state.line_width, state.global_alpha, state.current_compositing_and_blending_operator, line_cap, line_join, state.miter_limit, dash_array, state.line_dash_offset);
 }
 
 }

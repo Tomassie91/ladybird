@@ -84,7 +84,6 @@ public:
 
     virtual CanvasRenderingContext2DSettings get_context_attributes() const override { return m_context_attributes; }
 
-    virtual GC::Ref<TextMetrics> measure_text(Utf16String const&) override;
 
     virtual void clip(StringView fill_rule) override;
     virtual void clip(Path2D& path, StringView fill_rule) override;
@@ -126,12 +125,11 @@ public:
     void allocate_painting_surface_if_needed();
 
 protected:
-    [[nodiscard]] Gfx::Path text_path(StringView text, float x, float y, Optional<double> max_width) override;
     void stroke_internal(Gfx::Path const&) override;
     void fill_internal(Gfx::Path const&, Gfx::WindingRule) override;
 
 private:
-    CanvasRenderingContext2D(JS::Realm&, HTMLCanvasElement&, CanvasRenderingContext2DSettings);
+    explicit CanvasRenderingContext2D(JS::Realm&, HTMLCanvasElement&, CanvasRenderingContext2DSettings);
 
     virtual void initialize(JS::Realm&) override;
     virtual void visit_edges(Cell::Visitor&) override;

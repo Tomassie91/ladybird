@@ -31,9 +31,7 @@
 #include <LibWeb/HTML/Canvas/CanvasText.h>
 #include <LibWeb/HTML/Canvas/CanvasTextDrawingStyles.h>
 #include <LibWeb/HTML/Canvas/CanvasTransform.h>
-#include <LibWeb/HTML/CanvasGradient.h>
 #include <LibWeb/WebIDL/ExceptionOr.h>
-#include <LibWeb/WebIDL/Types.h>
 
 namespace Web::HTML {
 
@@ -87,7 +85,6 @@ public:
 
     virtual CanvasRenderingContext2DSettings get_context_attributes() const override { return m_context_attributes; }
 
-    virtual GC::Ref<TextMetrics> measure_text(Utf16String const&) override;
 
     virtual void clip(StringView fill_rule) override;
     virtual void clip(Path2D& path, StringView fill_rule) override;
@@ -126,15 +123,18 @@ public:
     void set_size(Gfx::IntSize const&);
 
 protected:
-    [[nodiscard]] Gfx::Path text_path(StringView text, float x, float y, Optional<double> max_width) override;
     void stroke_internal(Gfx::Path const&) override;
     void fill_internal(Gfx::Path const&, Gfx::WindingRule) override;
+    void paint_shadow_for_fill_internal(Gfx::Path const&, Gfx::WindingRule);
+    void paint_shadow_for_stroke_internal(Gfx::Path const&);
 
 private:
     explicit OffscreenCanvasRenderingContext2D(JS::Realm&, OffscreenCanvas&, CanvasRenderingContext2DSettings);
 
     virtual void initialize(JS::Realm&) override;
     virtual void visit_edges(Cell::Visitor&) override;
+
+    void did_draw(Gfx::FloatRect const&);
 
     virtual Gfx::Painter* painter_for_canvas_state() override
     {

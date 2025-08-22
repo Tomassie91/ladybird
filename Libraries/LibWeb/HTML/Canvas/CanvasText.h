@@ -32,8 +32,8 @@ public:
 protected:
     CanvasText() = default;
     Gfx::Path text_path(StringView text, float x, float y, Optional<double> max_width);
-    virtual void stroke_internal(Gfx::Path const&);
-    virtual void fill_internal(Gfx::Path const&, Gfx::WindingRule);
+    virtual void stroke_internal(Gfx::Path const&) = 0;
+    virtual void fill_internal(Gfx::Path const&, Gfx::WindingRule) = 0;
 
 private:
     static PreparedText prepare_text(ByteString const& text, Optional<double> max_width);

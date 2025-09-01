@@ -44,6 +44,7 @@ JS::ThrowCompletionOr<GC::Ref<CanvasRenderingContext2D>> CanvasRenderingContext2
 CanvasRenderingContext2D::CanvasRenderingContext2D(JS::Realm& realm, HTMLCanvasElement& element, CanvasRenderingContext2DSettings context_attributes)
     : PlatformObject(realm)
     , CanvasPath(static_cast<Bindings::PlatformObject&>(*this), *this)
+    , CanvasText(static_cast<Bindings::PlatformObject&>(*this), *this, *font_cascade_list())
     , m_element(element)
     , m_size(element.bitmap_size_for_canvas())
     , m_context_attributes(move(context_attributes))

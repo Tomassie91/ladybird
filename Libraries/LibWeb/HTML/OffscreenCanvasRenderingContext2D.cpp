@@ -40,6 +40,7 @@ JS::ThrowCompletionOr<GC::Ref<OffscreenCanvasRenderingContext2D>> OffscreenCanva
 OffscreenCanvasRenderingContext2D::OffscreenCanvasRenderingContext2D(JS::Realm& realm, OffscreenCanvas& offscreen_canvas, CanvasRenderingContext2DSettings context_attributes)
     : PlatformObject(realm)
     , CanvasPath(static_cast<Bindings::PlatformObject&>(*this), *this)
+    , CanvasText(static_cast<Bindings::PlatformObject&>(*this), *this, *font_cascade_list())
     , m_canvas(offscreen_canvas)
     , m_size(offscreen_canvas.bitmap_size_for_canvas())
     , m_context_attributes(context_attributes)

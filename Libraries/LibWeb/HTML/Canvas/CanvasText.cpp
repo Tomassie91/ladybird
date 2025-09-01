@@ -12,7 +12,6 @@
 #include <LibWeb/Infra/CharacterTypes.h>
 
 namespace Web::HTML {
-template <typename IncludingClass>
 GC::Ref<TextMetrics> CanvasText<IncludingClass>::measure_text(Utf16String const& text)
 {
      // The measureText(text) method steps are to run the text preparation
@@ -20,10 +19,11 @@ GC::Ref<TextMetrics> CanvasText<IncludingClass>::measure_text(Utf16String const&
     // interface, and then using the returned inline box return a new
     // TextMetrics object with members behaving as described in the following
     // list:
-    auto prepared_text = prepare_text(text);
-    auto metrics = TextMetrics::create(realm());
+    auto realm = realm();
+    auto prepared_text = prepare_text(text, {}, realm);
+    auto metrics = TextMetrics::create(realm);
     // FIXME: Use the font that was used to create the glyphs in prepared_text.
-    auto const& font = font_cascade_list()->first();
+    auto const& font = my_font_cascade_list().first();
 
     // width attribute: The width of that inline box, in CSS pixels. (The text's advance width.)
     metrics->set_width(prepared_text.bounding_box.width());
@@ -54,22 +54,19 @@ GC::Ref<TextMetrics> CanvasText<IncludingClass>::measure_text(Utf16String const&
 }
 
 // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-filltext
-template <typename IncludingClass>
-void CanvasText<IncludingClass>::fill_text(StringView text, float x, float y, Optional<double> max_width)
+void CanvasText::fill_text(StringView text, float x, float y, Optional<double> max_width)
 {
     fill_internal(text_path(text, x, y, max_width), Gfx::WindingRule::Nonzero);
 }
 
 // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-stroketext
-template <typename IncludingClass>
-void CanvasText<IncludingClass>::stroke_text(StringView text, float x, float y, Optional<double> max_width)
+void CanvasText::stroke_text(StringView text, float x, float y, Optional<double> max_width)
 {
     stroke_internal(text_path(text, x, y, max_width));
 }
 
 // https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm
-template <typename IncludingClass>
-typename CanvasText<IncludingClass>::PreparedText CanvasText<IncludingClass>::prepare_text(ByteString const& text, Optional<double> max_width)
+typename CanvasText::PreparedText CanvasText::prepare_text(ByteString const& text, Optional<double> max_width)
 {
     // 1. If maxWidth was provided but is less than or equal to zero or equal to NaN, then return an empty array.
     if (max_width.has_value() && max_width.value() <= 0) {
@@ -131,8 +128,7 @@ typename CanvasText<IncludingClass>::PreparedText CanvasText<IncludingClass>::pr
     return prepared_text;
 }
 
-template <typename IncludingClass>
-Gfx::Path CanvasText<IncludingClass>::text_path(Utf16String const& text, float x, float y, Optional<double> max_width)
+Gfx::Path CanvasText::text_path(Utf16String const& text, float x, float y, Optional<double> max_width)
 {
     if (max_width.has_value() && max_width.value() <= 0)
         return {};

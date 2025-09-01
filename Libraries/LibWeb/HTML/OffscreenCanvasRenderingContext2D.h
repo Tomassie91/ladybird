@@ -43,7 +43,7 @@ class OffscreenCanvasRenderingContext2D : public Bindings::PlatformObject
     , public CanvasFilters
     , public CanvasRect
     , public CanvasDrawPath
-    , public CanvasText<OffscreenCanvasRenderingContext2D>
+    , public CanvasText
     , public CanvasDrawImage
     , public CanvasImageData
     , public CanvasImageSmoothing

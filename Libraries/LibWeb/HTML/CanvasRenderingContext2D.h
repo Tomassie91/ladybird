@@ -44,7 +44,7 @@ class CanvasRenderingContext2D
     , public CanvasFilters
     , public CanvasRect
     , public CanvasDrawPath
-    , public CanvasText<CanvasRenderingContext2D>
+    , public CanvasText
     , public CanvasDrawImage
     , public CanvasImageData
     , public CanvasImageSmoothing

@@ -14,7 +14,6 @@
 
 namespace Web::HTML {
 // https://html.spec.whatwg.org/multipage/canvas.html#canvastext
-template<typename IncludingClass>
 class CanvasText {
 public:
     virtual ~CanvasText() = default;
@@ -30,19 +29,26 @@ public:
     };
 
 protected:
-    CanvasText() = default;
-    Gfx::Path text_path(StringView text, float x, float y, Optional<double> max_width);
+    explicit CanvasText(Bindings::PlatformObject& self, CanvasState const& state, Gfx::FontCascadeList const& font_cascade_list)
+        : m_self(self)
+        , m_state(state)
+        , m_font_cascade_list(font_cascade_list)
+    {
+    }
     virtual void stroke_internal(Gfx::Path const&) = 0;
     virtual void fill_internal(Gfx::Path const&, Gfx::WindingRule) = 0;
 
 private:
+    GC::Ref<Bindings::PlatformObject> m_self;
+    CanvasState const& m_state;
+    Gfx::FontCascadeList const& m_font_cascade_list;
+
+    Gfx::Path text_path(StringView text, float x, float y, Optional<double> max_width);
     static PreparedText prepare_text(ByteString const& text, Optional<double> max_width);
-    CanvasState::DrawingState my_drawing_state() { return &reinterpret_cast<IncludingClass&>(*this).drawing_state(); }
-    CanvasState::DrawingState const& my_drawing_state() const { return reinterpret_cast<IncludingClass const&>(*this).drawing_state(); }
-    JS::Realm my_realm() { return &reinterpret_cast<IncludingClass&>(*this).realm(); }
-    JS::Realm const& my_realm() const { return reinterpret_cast<IncludingClass const&>(*this).realm(); }
-    Gfx::FontCascadeList my_font_cascade_list() { return &reinterpret_cast<IncludingClass&>(*this).font_cascade_list(); }
-    Gfx::FontCascadeList const& my_font_cascade_list() const { return reinterpret_cast<IncludingClass&>(*this).font_cascade_list(); }
+    CanvasState::DrawingState my_drawing_state() { return m_state.drawing_state(); }
+    CanvasState::DrawingState const& my_drawing_state() const { return m_state.drawing_state(); }
+    JS::Realm& realm() { return m_self->realm(); }
+    Gfx::FontCascadeList const& my_font_cascade_list() const { return m_font_cascade_list; }
 };
 
 }

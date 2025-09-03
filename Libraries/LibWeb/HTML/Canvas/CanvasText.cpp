@@ -8,8 +8,8 @@
 #include <LibGfx/AffineTransform.h>
 #include <LibGfx/TextLayout.h>
 #include <LibGfx/WindingRule.h>
-#include <LibWeb/HTML/Canvas/CanvasText.h>
 #include <LibWeb/Infra/CharacterTypes.h>
+#include <LibWeb/HTML/Canvas/CanvasText.h>
 
 namespace Web::HTML {
 GC::Ref<TextMetrics> CanvasText<IncludingClass>::measure_text(Utf16String const& text)
@@ -19,8 +19,8 @@ GC::Ref<TextMetrics> CanvasText<IncludingClass>::measure_text(Utf16String const&
     // interface, and then using the returned inline box return a new
     // TextMetrics object with members behaving as described in the following
     // list:
-    auto realm = realm();
-    auto prepared_text = prepare_text(text, {}, realm);
+	auto& realm = my_realm();
+    auto prepared_text = prepare_text(text, {});
     auto metrics = TextMetrics::create(realm);
     // FIXME: Use the font that was used to create the glyphs in prepared_text.
     auto const& font = my_font_cascade_list().first();
@@ -66,7 +66,7 @@ void CanvasText::stroke_text(StringView text, float x, float y, Optional<double>
 }
 
 // https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm
-typename CanvasText::PreparedText CanvasText::prepare_text(ByteString const& text, Optional<double> max_width)
+CanvasText::PreparedText CanvasText::prepare_text(ByteString const& text, Optional<double> max_width)
 {
     // 1. If maxWidth was provided but is less than or equal to zero or equal to NaN, then return an empty array.
     if (max_width.has_value() && max_width.value() <= 0) {
@@ -81,7 +81,7 @@ typename CanvasText::PreparedText CanvasText::prepare_text(ByteString const& tex
     auto replaced_text = MUST(builder.to_string());
 
     // 3. Let font be the current font of target, as given by that object's font attribute.
-    auto glyph_runs = Gfx::shape_text({ 0, 0 }, Utf8View(replaced_text), *my_font_cascade_list());
+    auto glyph_runs = Gfx::shape_text({ 0, 0 }, Utf8View(replaced_text), this->my_font_cascade_list());
 
     // FIXME: 4. Let language be the target's language.
     // FIXME: 5. If language is "inherit":
@@ -133,11 +133,11 @@ Gfx::Path CanvasText::text_path(Utf16String const& text, float x, float y, Optio
     if (max_width.has_value() && max_width.value() <= 0)
         return {};
 
-    auto& drawing_state = this->drawing_state();
+    auto drawing_state = my_drawing_state();
 
-    auto const& font_cascade_list = this->font_cascade_list();
-    auto const& font = font_cascade_list->first();
-    auto glyph_runs = Gfx::shape_text({ x, y }, text.utf16_view(), *font_cascade_list);
+    auto& font_cascade_list = my_font_cascade_list();
+    auto const& font = font_cascade_list.first();
+    auto glyph_runs = Gfx::shape_text({ x, y }, text.utf16_view(), font_cascade_list);
     Gfx::Path path;
     for (auto const& glyph_run : glyph_runs) {
         path.glyph_run(glyph_run);

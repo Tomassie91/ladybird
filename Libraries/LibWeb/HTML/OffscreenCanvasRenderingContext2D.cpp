@@ -39,8 +39,8 @@ JS::ThrowCompletionOr<GC::Ref<OffscreenCanvasRenderingContext2D>> OffscreenCanva
 
 OffscreenCanvasRenderingContext2D::OffscreenCanvasRenderingContext2D(JS::Realm& realm, OffscreenCanvas& offscreen_canvas, CanvasRenderingContext2DSettings context_attributes)
     : PlatformObject(realm)
-    , CanvasPath(static_cast<Bindings::PlatformObject&>(*this), *this)
     , CanvasText(static_cast<Bindings::PlatformObject&>(*this), *this, *font_cascade_list())
+    , CanvasPath(static_cast<Bindings::PlatformObject&>(*this), *this)
     , m_canvas(offscreen_canvas)
     , m_size(offscreen_canvas.bitmap_size_for_canvas())
     , m_context_attributes(context_attributes)
@@ -177,6 +177,17 @@ bool OffscreenCanvasRenderingContext2D::is_point_in_path(Path2D const&, double, 
 {
     dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::clip(Path2D const&, double, double, StringView)");
     return false;
+}
+
+RefPtr<Gfx::FontCascadeList const> OffscreenCanvasRenderingContext2D::font_cascade_list()
+{
+    // When font style value is empty load default font
+    if (!drawing_state().font_style_value) {
+        set_font("10px sans-serif"sv);
+    }
+
+    // Get current loaded font
+    return drawing_state().current_font_cascade_list;
 }
 
 bool OffscreenCanvasRenderingContext2D::image_smoothing_enabled() const

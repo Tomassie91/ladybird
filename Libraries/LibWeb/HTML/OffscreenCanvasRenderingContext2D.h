@@ -136,6 +136,8 @@ private:
 
     void did_draw(Gfx::FloatRect const&);
 
+	RefPtr<Gfx::FontCascadeList const> font_cascade_list();
+
     virtual Gfx::Painter* painter_for_canvas_state() override
     {
         dbgln("(STUBBED) OffscreenCanvasRenderingContext2D::painter_for_canvas_state()");

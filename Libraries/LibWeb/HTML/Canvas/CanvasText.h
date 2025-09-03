@@ -11,16 +11,17 @@
 #include <LibGfx/Path.h>
 #include <LibWeb/HTML/TextMetrics.h>
 #include <LibWeb/HTML/Canvas/CanvasState.h>
+#include <LibWeb/Bindings/PlatformObject.h>
 
 namespace Web::HTML {
 // https://html.spec.whatwg.org/multipage/canvas.html#canvastext
 class CanvasText {
 public:
-    virtual ~CanvasText() = default;
+    ~CanvasText() = default;
 
+    GC::Ref<TextMetrics> measure_text(Utf16String text const&) = 0;
     void fill_text(Utf16String, float x, float y, Optional<double> max_width = 0);
     void stroke_text(Utf16String, float x, float y, Optional<double> max_width = 0);
-    GC::Ref<TextMetrics> measure_text(Utf16String const&) = 0;
 
     struct PreparedText {
         Vector<NonnullRefPtr<Gfx::GlyphRun>> glyph_runs;
@@ -44,10 +45,10 @@ private:
     Gfx::FontCascadeList const& m_font_cascade_list;
 
     Gfx::Path text_path(StringView text, float x, float y, Optional<double> max_width);
-    static PreparedText prepare_text(ByteString const& text, Optional<double> max_width);
+    PreparedText prepare_text(ByteString const& text, Optional<double> max_width);
     CanvasState::DrawingState my_drawing_state() { return m_state.drawing_state(); }
     CanvasState::DrawingState const& my_drawing_state() const { return m_state.drawing_state(); }
-    JS::Realm& realm() { return m_self->realm(); }
+    JS::Realm& my_realm() { return m_self->realm(); }
     Gfx::FontCascadeList const& my_font_cascade_list() const { return m_font_cascade_list; }
 };
 

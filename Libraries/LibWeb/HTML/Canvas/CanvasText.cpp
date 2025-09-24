@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include <AK/StringView.h>
 #include <LibGfx/AffineTransform.h>
 #include <LibGfx/TextLayout.h>
 #include <LibGfx/WindingRule.h>
@@ -12,14 +11,14 @@
 #include <LibWeb/HTML/Canvas/CanvasText.h>
 
 namespace Web::HTML {
-GC::Ref<TextMetrics> CanvasText<IncludingClass>::measure_text(Utf16String const& text)
+GC::Ref<TextMetrics> CanvasText::measure_text(Utf16String const& text)
 {
      // The measureText(text) method steps are to run the text preparation
     // algorithm, passing it text and the object implementing the CanvasText
     // interface, and then using the returned inline box return a new
     // TextMetrics object with members behaving as described in the following
     // list:
-	auto& realm = my_realm();
+    auto& realm = my_realm();
     auto prepared_text = prepare_text(text, {});
     auto metrics = TextMetrics::create(realm);
     // FIXME: Use the font that was used to create the glyphs in prepared_text.
@@ -54,34 +53,34 @@ GC::Ref<TextMetrics> CanvasText<IncludingClass>::measure_text(Utf16String const&
 }
 
 // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-filltext
-void CanvasText::fill_text(StringView text, float x, float y, Optional<double> max_width)
+void CanvasText::fill_text(Utf16String const& text, float x, float y, Optional<double> max_width)
 {
     fill_internal(text_path(text, x, y, max_width), Gfx::WindingRule::Nonzero);
 }
 
 // https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-stroketext
-void CanvasText::stroke_text(StringView text, float x, float y, Optional<double> max_width)
+void CanvasText::stroke_text(Utf16String const& text, float x, float y, Optional<double> max_width)
 {
     stroke_internal(text_path(text, x, y, max_width));
 }
 
 // https://html.spec.whatwg.org/multipage/canvas.html#text-preparation-algorithm
-CanvasText::PreparedText CanvasText::prepare_text(ByteString const& text, Optional<double> max_width)
+CanvasText::PreparedText CanvasText::prepare_text(Utf16String const& text, Optional<double> max_width)
 {
     // 1. If maxWidth was provided but is less than or equal to zero or equal to NaN, then return an empty array.
-    if (max_width.has_value() && max_width.value() <= 0) {
+    if (max_width.has_value() && (max_width.value() <= 0 || max_width.value() != max_width)) {
         return {};
     }
 
     // 2. Replace all ASCII whitespace in text with U+0020 SPACE characters.
-    StringBuilder builder { text.length() };
+    StringBuilder builder { StringBuilder::Mode::UTF16, text.length_in_code_units() };
     for (auto c : text) {
         builder.append(Infra::is_ascii_whitespace(c) ? ' ' : c);
     }
-    auto replaced_text = MUST(builder.to_string());
+    auto replaced_text = builder.to_utf16_string();
 
     // 3. Let font be the current font of target, as given by that object's font attribute.
-    auto glyph_runs = Gfx::shape_text({ 0, 0 }, Utf8View(replaced_text), this->my_font_cascade_list());
+    auto glyph_runs = Gfx::shape_text({ 0, 0 }, replaced_text.utf16_view(), this->my_font_cascade_list());
 
     // FIXME: 4. Let language be the target's language.
     // FIXME: 5. If language is "inherit":
@@ -130,7 +129,7 @@ CanvasText::PreparedText CanvasText::prepare_text(ByteString const& text, Option
 
 Gfx::Path CanvasText::text_path(Utf16String const& text, float x, float y, Optional<double> max_width)
 {
-    if (max_width.has_value() && max_width.value() <= 0)
+    if (max_width.has_value() && (max_width.value() <= 0 || max_width.value() != max_width))
         return {};
 
     auto drawing_state = my_drawing_state();

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <AK/String.h>
 #include <AK/Debug.h>
 #include <AK/Optional.h>
 #include <LibGfx/Path.h>
@@ -19,9 +20,9 @@ class CanvasText {
 public:
     ~CanvasText() = default;
 
-    GC::Ref<TextMetrics> measure_text(Utf16String text const&) = 0;
-    void fill_text(Utf16String, float x, float y, Optional<double> max_width = 0);
-    void stroke_text(Utf16String, float x, float y, Optional<double> max_width = 0);
+    GC::Ref<TextMetrics> measure_text(Utf16String const&);
+    void fill_text(Utf16String const&, float x, float y, Optional<double> max_width = 0);
+    void stroke_text(Utf16String const&, float x, float y, Optional<double> max_width = 0);
 
     struct PreparedText {
         Vector<NonnullRefPtr<Gfx::GlyphRun>> glyph_runs;
@@ -44,8 +45,8 @@ private:
     CanvasState const& m_state;
     Gfx::FontCascadeList const& m_font_cascade_list;
 
-    Gfx::Path text_path(StringView text, float x, float y, Optional<double> max_width);
-    PreparedText prepare_text(ByteString const& text, Optional<double> max_width);
+    Gfx::Path text_path(Utf16String const& text, float x, float y, Optional<double> max_width);
+    PreparedText prepare_text(Utf16String const&, Optional<double> max_width);
     CanvasState::DrawingState my_drawing_state() { return m_state.drawing_state(); }
     CanvasState::DrawingState const& my_drawing_state() const { return m_state.drawing_state(); }
     JS::Realm& my_realm() { return m_self->realm(); }

@@ -55,11 +55,11 @@ public:
         if constexpr (SameAs<CanvasType, HTML::HTMLCanvasElement>) {
             // 1. If object's font style source object is a canvas element, return the element's node document.
             return &font_style_source_object.document();
-        } else {
+        } else if constexpr (SameAs<CanvasType, HTML::OffscreenCanvas>) {
             // 2. Otherwise, object's font style source object is an OffscreenCanvas object:
 
             // 1. Let global be object's relevant global object.
-            auto& global_object = HTML::relevant_global_object(font_style_source_object);
+            auto& global_object = font_style_source_object.realm().global_object();
 
             // 2. If global is a Window object, then return global's associated Document.
             if (is<HTML::Window>(global_object)) {
@@ -72,6 +72,9 @@ public:
 
             // 4. Return global.
             return &(as<HTML::WorkerGlobalScope>(global_object));
+        } else {
+            VERIFY_NOT_REACHED();
+            return {};
         };
     }
 
